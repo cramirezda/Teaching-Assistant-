@@ -262,7 +262,7 @@ df <- df %>%
 
 # Scatter + rectas de regresión por grupo (color = nonwhite)
 
-lwage ~ educ*nonwhite
+#lwage ~ educ*nonwhite
 
 #Opción wage
 ggplot(df, aes(x = educ, y = wage, color = factor(nonwhite))) +
