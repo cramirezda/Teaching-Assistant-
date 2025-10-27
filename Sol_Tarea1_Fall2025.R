@@ -132,7 +132,7 @@ t_stat <- dataT1 %>% filter(south==1 | west==1) %>%
             p_value = 2*pnorm(abs(Neyman / SD), 0, 1, lower.tail = F))
 (t <- t_stat$Neyman/t_stat$SD)
 
-# ====/// 1e: Bootstrap \\\=====
+# ====/// 1e: Bootstrap, Licenciatura \\\=====
 
 # Bootstrap pooled
 B <- 500
@@ -167,49 +167,56 @@ ggplot(estat_boot, aes(x = estat_boot)) +
 ggsave("Histograma_1e.png",  width = 5.54, height = 4.95)
 
 
-#---- MAESTRÍA -----
+# ====/// 1e: Bootstrap, Maestria \\\=====
+
+# Empezamos por calcular el KS observado con la
+# muestra original
+
+data_west <- dataT1 %>% filter(west==1) 
+data_north <- dataT1 %>% filter(northcen==1) 
+(ks_obs <- ks.test(data_west$wage, data_north$wage)$statistic)
+
+# Simulaciones donde west y northcen se asignan al azar
+# por lo tanto no habría diferencia de distribuciones
+
+# Pool both samples (to simulate under H0)
+combined <- dataT1 %>% filter(west==1 | northcen==1)
+n_w <- sum(combined$west)
+n_nc <- sum(combined$northcen)
+ks_boot <- c()
+
+# Bootstrap loop
+for (n in 1:B) {
+  muestra <- sample_n(combined,size = n_w+n_nc, replace = TRUE)
+  x_boot <- muestra[1:n_w,]
+  y_boot <- muestra[(n_w + 1):(n_w + n_nc),]
+  ks_boot <- c(ks_boot,ks.test(x_boot$wage, y_boot$wage)$statistic)
+  muestra <- c()
+}
 
 
-# Submuestras por dummies originales: west y northcen
-W   <- df %>% filter(west == 1)     %>% pull(wage)
-NC  <- df %>% filter(northcen == 1) %>% pull(wage)
-nW  <- length(W); nNC <- length(NC)
-pool <- c(W, NC)
+# Empirical mean and variance of K statistic
+mn_emp <- mean(ks_boot)
+var_emp <- var(ks_boot)
 
-# --- K-S observado (dos muestras) ---
-ks_obs <- suppressWarnings(ks.test(W, NC))
-D_obs  <- as.numeric(ks_obs$statistic)   # sup|F_W - F_NC|
-p_asym <- ks_obs$p.value                 # referencia asintótica
+# Empirical p-value: fraction of bootstrap statistics >= observed
+p_boot <- mean(ks_boot >= ks_obs)
 
-# --- Bootstrap bajo H0 (pooled) con B=500, tamaño nW+nNC ---
-set.seed(123)
-B <- 500
-D_boot <- replicate(B, {
-  xb <- sample(pool, size = nW + nNC, replace = TRUE)
-  Wb <- xb[seq_len(nW)]
-  NCb <- xb[(nW+1):(nW+nNC)]
-  suppressWarnings(as.numeric(ks.test(Wb, NCb)$statistic))
-})
+cat("Observed KS statistic:", ks_obs, "\n")
+cat("Empirical variance:", var_emp, "\n")
+cat("Bootstrap p-value:", p_boot, "\n")
 
-# p-valor bootstrap (bilateral en K-S es unilateral por construcción)
-p_boot <- mean(D_boot >= D_obs)
-
-# --- Resultados ---
-data.frame(
-  D_obs = D_obs,
-  p_ks_asintotico = p_asym,
-  p_ks_bootstrap  = p_boot,
-  n_west = nW, n_northcen = nNC
-)
 
 # --- Gráfica distribución bootstrap del estadístico K-S ---
-ggplot(data.frame(D_boot = D_boot), aes(D_boot)) +
+ggplot(data.frame(ks_boot), aes(x=ks_boot)) +
   geom_histogram(aes(y = after_stat(density)), bins = 30,fill='blue', color = "white") +
-  geom_density() +
-  geom_vline(xintercept = D_obs, linetype = "dashed") +
+  geom_vline(xintercept = ks_obs, linetype = "dashed") +
   labs(title = "Bootstrap del estadístico K-S: West vs North Central",
-       x = "D_boot", y = "Densidad")+
+       x = "KS_boot", y = "Densidad")+
   theme_clean
+
+ggsave("Histograma_1e_Maest.png",  width = 5.54, height = 4.95)
+
 
 ###################################################################################
 
