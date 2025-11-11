@@ -16,7 +16,7 @@ install <- function(packages){
 }
 required.packages <- c('dplyr','ggplot2','fixest','modelsummary','readr',
                        'knitr','tidyr','e1071','ineq','lmtest','sandwich',
-                       'jtools','stargazer','tibble')
+                       'jtools','stargazer','tibble','jtools','car')
 
 install(required.packages)
 
@@ -220,130 +220,82 @@ ggsave("Histograma_1e_Maest.png",  width = 5.54, height = 4.95)
 
 ###################################################################################
 
-#----- 2 a) scatterplot salario, educación, ternure
+# ====/// 2a,b: scatterplot salario, educación \\\=====
 
-ggplot(df, aes(x = educ, y = wage)) +
+
+ggplot(dataT1, aes(x = educ, y = wage)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(x = "Años de educación", y = "Salario por hora", title = "wage vs educ con línea OLS")+
   theme_clean
 
-ggplot(df, aes(x = educ, y = lwage)) +
+ggsave("Scatter_2a.png",  width = 5.54, height = 4.95)
+
+ggplot(dataT1, aes(x = educ, y = log(wage))) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(x = "Años de con el empleador actual", y = "Salario por hora", title = "lwage vs educ con línea OLS")+
   theme_clean
 
-df <- df %>%
-  filter(is.finite(wage), is.finite(educ)) %>%
-  mutate(nonwhite_f = factor(nonwhite, levels = c(0,1), labels = c("White","Nonwhite")))
+ggsave("Scatter_2b.png",  width = 5.54, height = 4.95)
 
-# Scatter + rectas de regresión por grupo (color = nonwhite)
+# ====/// 2c: scatterplot con interaccion \\\=====
 
-#lwage ~ educ*nonwhite
+dataT1 <- dataT1 %>%
+    mutate(nonwhite_f = factor(nonwhite, levels = c(0,1), 
+                               labels = c("White","Nonwhite")),
+           nonw_educ = nonwhite*educ)
 
-#Opción wage
-ggplot(df, aes(x = educ, y = wage, color = factor(nonwhite))) +
-  geom_point(alpha = 0.5, size = 2) +
-  geom_smooth(method = "lm", se = FALSE, linewidth = 1) +
-  labs(x = "Años de educación", y = "Salario por hora",
-       color = "Grupo", title = "Salario vs Educación por grupo racial (wage1)") +
-  theme_minimal(base_size = 12)
+reg_int <- lm(log(wage)~educ+nonwhite+nonw_educ,data=dataT1)
+summ(reg_int,robust = "HC1",digits=4)
 
-# Opción lwage
-ggplot(df, aes(x = educ, y = lwage, color = factor(nonwhite))) +
+ggplot(dataT1, aes(x = educ, y = log(wage), color = nonwhite_f)) +
   geom_point(alpha = 0.5, size = 2) +
   geom_smooth(method = "lm", se = FALSE, linewidth = 1) +
   labs(x = "Años de educación", y = "log(salario)",
        color = "Grupo", title = "lwage vs educ por nonwhite") +
   theme_clean
 
-#------ Exper y lwage ----
-ggplot(df, aes(x = exper, y = lwage)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(x = "Años de experiencia", y = "log(wage)", title = "lwage vs exper")+
+ggsave("Scatter_2c.png",  width = 5.54, height = 4.95)
+
+# ====/// 2d: Relacion log(wage) y exper \\\=====
+
+dataT1_avg <- dataT1 %>% 
+  mutate(exp_r=round(exper/5,digits=0)*5) %>%
+  group_by(exp_r) %>%
+  summarize(log_w=mean(log(wage)))
+  
+ggplot() +
+  geom_point(aes(x=exp_r,y=log_w),data=dataT1_avg) +
+  geom_smooth(aes(x=exper,y=log(wage)),data=dataT1,method = "lm") +
   theme_clean
 
-#---- MAESTRÍA ----
+ggsave("Scatter_2d_Lic_a.png",  width = 5.54, height = 4.95)
 
-#Opción 1
-ggplot(df, aes(exper, lwage)) +
-  geom_point(alpha = 0.25, size = 1) +
-  geom_smooth(method = "loess", se = TRUE, span = 0.9, linewidth = 1) +
-  labs(title = "lwage vs exper con LOESS", x = "Experiencia (años)", y = "log(salario)") +
-  theme_minimal(base_size = 12)
+ggplot() +
+  geom_point(aes(x=exp_r,y=log_w),data=dataT1_avg) +
+  geom_smooth(aes(x=exper,y=log(wage)),data=dataT1,method = "lm",formula=y~poly(x,2)) + 
+  theme_clean
 
-#Opción 2
-df$metodo <- "LOESS"
+ggsave("Scatter_2d_Lic_b.png",  width = 5.54, height = 4.95)
 
-ggplot(df, aes(x = exper, y = lwage)) +
-  geom_point(alpha = 0.2, size = 1, color = "gray50") +
-  geom_smooth(aes(color = "LOESS"), method = "loess", se = FALSE, span = 0.9, linewidth = 1) +
-  stat_smooth(aes(color = "LM"),
-              method = "lm", formula = y ~ x + I(x^2),
-              se = FALSE, linetype = 2, linewidth = 1) +
-  labs(title = "Relación entre log(salario) y experiencia",
-       x = "Experiencia (años)",
-       y = "log(salario)",
-       color = "Método") +
-  scale_color_manual(values = c("LOESS" = "blue", "LM" = "red")) +
-  theme_minimal(base_size = 12) +
-  theme(panel.grid.minor = element_blank())
+ggplot() +
+  geom_point(aes(x=exp_r,y=log_w),data=dataT1_avg) +
+  geom_smooth(aes(x=exper,y=log(wage)),data=dataT1,method = "loess",span=0.75) + 
+  theme_clean
 
-#--------- 2 b)- e) Regresiones ---------------
-# arcsinh
-df2 <- wage1 %>%
-  mutate(
-    lwage   = lwage,
-    expersq = expersq,
-    ltenure = asinh(tenure),   # ≡ log(tenure + 1); evita perder tenure==0
-    # Construir factor de región con "East" como base (cuando no está en las dummies):
-    west     = if ("west"     %in% names(.)) as.integer(west)     else 0L,
-    south    = if ("south"    %in% names(.)) as.integer(south)    else 0L,
-    northcen = if ("northcen" %in% names(.)) as.integer(northcen) else 0L,
-    region = case_when(
-      west == 1     ~ "West",
-      south == 1    ~ "South",
-      northcen == 1 ~ "Northcen",
-      TRUE          ~ "East"
-    ),
-    region = factor(region, levels = c("East","Northcen","South","West"))
-  ) %>%
-  # mantén observaciones válidas en variables usadas
-  filter(is.finite(wage), is.finite(educ), is.finite(exper), is.finite(expersq),
-         is.finite(lwage), is.finite(ltenure))
+ggsave("Scatter_2d_Maest.png",  width = 5.54, height = 4.95)
 
-# Modelos con VCOV robusto a heterocedasticidad
-m1 <- feols(wage  ~ educ + exper + expersq, data = df2, vcov = "hetero")
-m2 <- feols(wage  ~ educ + exper + expersq + female + nonwhite + married + ltenure + region,
-            data = df2, vcov = "hetero")
+# ====/// 2e: Regresiones \\\=====
 
-m3 <- feols(lwage ~ educ + exper + expersq, data = df2, vcov = "hetero")
-m4 <- feols(lwage ~ educ + exper + expersq + female + nonwhite + married,
-            data = df2, vcov = "hetero")
-m5 <- feols(lwage ~ educ + exper + expersq + female + nonwhite + married + ltenure + region,
-            data = df2, vcov = "hetero")
+dataT1 <- dataT1 %>%
+  mutate(exper2 = exper^2)
 
-summary(m1); summary(m2); summary(m3); summary(m4); summary(m5)
-
-
-# 2 II) Tabla
-msummary(
-  list(M1=m1, M2=m2, M3=m3, M4=m4, M5=m5),
-  estimate = "{estimate}{stars}",
-  stars = c('***' = 0.03, '**' = 0.07, '*' = 0.13),
-  gof_omit = "IC|Log|Within|FE|F",
-  notes = "Note: *** p<0.03; ** p<0.07; * p<0.13"
-)
-
-#--- consistencia con lm y stargazer
-m1 <- lm(wage ~ educ + exper + expersq, data = df2)
-m2 <- lm(wage ~ educ + exper + expersq + female + nonwhite + married + ltenure + region, data = df2)
-m3 <- lm(lwage ~ educ + exper + expersq, data = df2)
-m4 <- lm(lwage ~  educ + exper + expersq + female + nonwhite + married, data = df2)
-m5 <- lm(lwage ~ educ + exper + expersq + female + nonwhite + married + ltenure + region,
-         data = df2)
+m1 <- lm(wage ~ educ + exper + exper2, data = dataT1)
+m2 <- lm(wage ~ educ + exper + exper2 + female + nonwhite + married + asinh(tenure) + factor(region), data = dataT1)
+m3 <- lm(lwage ~ educ + exper + exper2, data = dataT1)
+m4 <- lm(lwage ~  educ + exper + exper2 + female + nonwhite + married, data = dataT1)
+m5 <- lm(lwage ~ educ + exper + exper2 + female + nonwhite + married + asinh(tenure) + factor(region), data = dataT1)
 
 # === Errores estándar robustos HC1 (vectores para stargazer) ===
 rse1 <- sqrt(diag(vcovHC(m1, type = "HC1")))
@@ -352,39 +304,31 @@ rse3 <- sqrt(diag(vcovHC(m3, type = "HC1")))
 rse4 <- sqrt(diag(vcovHC(m4, type = "HC1")))
 rse5 <- sqrt(diag(vcovHC(m5, type = "HC1")))
 
-# === Ejemplo tipo: summ(reg3.e, robust="HC1", digits=4) ===
-summ(m1, robust = "HC1", digits = 4)
-summ(m2, robust = "HC1", digits = 4)
-summ(m3, robust = "HC1", digits = 4)
-summ(m4, robust = "HC1", digits = 4)
-summ(m5, robust = "HC1", digits = 4)
-
 stargazer(m1, m2, m3, m4, m5, type = "latex",
           se = list(rse1, rse2, rse3, rse4, rse5),
           title = "Wage1: LM con errores robustos HC1",
-          label = "tab:reg_all_hc1",
-          dep.var.labels = c("log(salario)"),
+          label = "tab:reg_2e",
+          dep.var.labels = c("salario","log(salario)"),
           star.cutoffs = c(0.13, 0.07, 0.03),
           float.env = "table",
-          align = TRUE)
+          align = TRUE,
+          out = "table_ols_2e.tex")
 
-# ejercicio intervalo de confianza
+# ====/// 2g: Prediccion \\\=====
 
-# Construir nuevo caso
-p <- data.frame(
-  educ = 16,
-  exper = 23,
-  expersq = 23^2,
-  female = 1,
-  nonwhite = 0,
-  married = 1,
-  ltenure = asinh(5),
-  region = factor("South", levels = c("East","Northcen","South","West"))
-)
+# Construir caso hipot\'etico
+lg <- c(1,16,23,23^2,1,0,1,asinh(5),0,1,0)
+lg_test <- linearHypothesis(m2,lg,rhs=0,white.adjust="hc1")
+(theta <- t(lg)%*%m2$coefficients)
+se_theta <- theta/sqrt(lg_test$F[2])
+(ic_theta <- c(theta-1.96*se_theta,theta+1.96*se_theta))
 
-# Intervalo de confianza 95% para el salario esperado
-pred <- predict(m2, newdata = p, interval = "confidence", level = 0.95)
-pred
+# ====/// 2i: Prediccion \\\=====
+dataT1 <- dataT1 %>%
+  mutate(educ_lus = educ/5)
+
+m1b <- lm(wage ~ educ_lus + exper + exper2, data = dataT1)
+summary(m1b)
 
 ####################################################################################
 # m_ind_1 <- feols(lwage ~ educ*construc + educ*ndurman + educ*trade +educ*services+educ*profserv + female +married+nonwhite, data=df2, vcov='hetero')
@@ -393,7 +337,7 @@ pred
 # summary(m_ind)
 
 
-df3 <- df2 %>%
+dataT1_ind <- dataT1 %>%
   mutate(
     industry = case_when(
       construc == 1 ~ "construc",
@@ -405,15 +349,15 @@ df3 <- df2 %>%
     industry = factor(industry, levels = c("other","construc","ndurman","trade","services"))
   )
 
-m_ind_A <- feols(lwage ~ educ*industry + female + married + nonwhite, data=df3, vcov="hetero")
-summary(m_ind_A)
+m_5j <- feols(log(wage) ~ educ*industry + female + married + nonwhite + factor(region), data=dataT1_ind, vcov="hetero")
+summary(m_5j)
 
 # 1) Extrae coeficientes y var-cov
-b <- coef(m_ind_A)
-V <- vcov(m_ind_A)
+b <- coef(m_5j)
+V <- vcov(m_5j)
 z <- qnorm(0.95)  # IC 90%
 
-inds <- levels(df3$industry)  # c("other","construc","ndurman","trade","services")
+inds <- levels(dataT1_ind$industry)  # c("other","construc","ndurman","trade","services")
 
 mk_lincomb <- function(ind){
   cvec <- rep(0, length(b)); names(cvec) <- names(b)
@@ -440,59 +384,20 @@ ggplot(slopes, aes(x = industry, y = est)) +
   theme_minimal(base_size = 12) +
   theme(panel.grid.minor = element_blank())
 
+ggsave("Barplot_2j.png",  width = 5.54, height = 4.95)
 
-# OPCION 2 
-
-# Grid para predicción: educ en rango observado, controles en medias
-educ_seq <- seq(min(df3$educ, na.rm=TRUE), max(df3$educ, na.rm=TRUE), length.out = 50)
-ctrl_means_A <- df3 %>%
-  summarise(
-    female = mean(female, na.rm=TRUE),
-    married= mean(married, na.rm=TRUE),
-    nonwhite=mean(nonwhite, na.rm=TRUE)
-  )
-
-newdat_A <- tidyr::crossing(
-  industry = levels(df3$industry),
-  educ = educ_seq
-) %>%
-  bind_cols(ctrl_means_A[rep(1, nrow(.)), ])
-
-# Predicciones y banda de confianza 90%
-pred_A <- predict(m_ind_A, newdata=newdat_A, se.fit=TRUE, interval="confidence", level=0.90)
-pred_A <- cbind(newdat_A, as.data.frame(pred_A))
-
-pred_raw <- predict(m_ind_A, newdata = newdat_A, se.fit = TRUE)  # fixest
-z <- qnorm(0.95)
-
-pred_A <- newdat_A %>%
-  mutate(
-    fit = as.numeric(pred_raw$fit),
-    se  = as.numeric(pred_raw$se.fit),
-    lwr = fit - z * se,
-    upr = fit + z * se
-  )
-
-# Gráfica
-pA <- ggplot(df3, aes(x = educ, y = lwage, color = industry)) +
-  geom_point(alpha = 0.25, size = 1) +
-  geom_ribbon(data = pred_A,
-              aes(x = educ, ymin = lwr, ymax = upr, fill = industry),
-              inherit.aes = FALSE, alpha = 0.20) +
-  geom_line(data = pred_A,
-            aes(x = educ, y = fit),
-            inherit.aes = FALSE, linewidth = 1) +
-  facet_wrap(~ industry, ncol = 3, scales = "fixed") +
-  labs(title = "Rendimiento de la educación por industria (IC 90%)",
-       x = "Años de educación", y = "log(salario)") +
-  theme_minimal(base_size = 12) +
-  theme(panel.grid.minor = element_blank())
-print(pA)
 
 
 # PRUEBA DE HIPOTESIS CON WALD
 
-wald(m_ind_A, keep = "educ:")
+# Crear la L para la prueba de hipotesis
+mat_j <- c(0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,
+           0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,
+           0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,
+           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1)
+L_j <- matrix(mat_j,nrow=4,ncol = 16, byrow = T)
+linearHypothesis(m_5j,L_j,white.adjust="hc1")
+
 
 ##################################################################################
 
