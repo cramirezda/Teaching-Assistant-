@@ -330,12 +330,8 @@ dataT1 <- dataT1 %>%
 m1b <- lm(wage ~ educ_lus + exper + exper2, data = dataT1)
 summary(m1b)
 
-####################################################################################
-# m_ind_1 <- feols(lwage ~ educ*construc + educ*ndurman + educ*trade +educ*services+educ*profserv + female +married+nonwhite, data=df2, vcov='hetero')
-# summary(m_ind)
-# m_ind_2 <- feols(lwage ~ educ*profocc + educ*clerocc + educ*trade +educ*servocc+educ*trcommpu + female +married+nonwhite, data=df2, vcov='hetero')
-# summary(m_ind)
 
+# ====/// 2j: Heterogeneidad de industria \\\=====
 
 dataT1_ind <- dataT1 %>%
   mutate(
@@ -352,13 +348,14 @@ dataT1_ind <- dataT1 %>%
 m_5j <- feols(log(wage) ~ educ*industry + female + married + nonwhite + factor(region), data=dataT1_ind, vcov="hetero")
 summary(m_5j)
 
-# 1) Extrae coeficientes y var-cov
+# Extrae coeficientes y var-cov
 b <- coef(m_5j)
 V <- vcov(m_5j)
 z <- qnorm(0.95)  # IC 90%
 
 inds <- levels(dataT1_ind$industry)  # c("other","construc","ndurman","trade","services")
 
+# Funcion para generar los intervalos
 mk_lincomb <- function(ind){
   cvec <- rep(0, length(b)); names(cvec) <- names(b)
   # pendiente en la industria 'ind' = beta_educ + beta_(educ:industry=ind)
@@ -374,7 +371,7 @@ mk_lincomb <- function(ind){
 slopes <- bind_rows(lapply(inds, mk_lincomb)) %>%
   mutate(industry = factor(industry, levels = inds))
 
-# 2) OPCION 1 Gráfica de barras con IC 90%
+#  Gráfica de barras con IC 90%
 ggplot(slopes, aes(x = industry, y = est)) +
   geom_col(fill = "#0072B2", alpha = 0.8, width = 0.65) +
   geom_errorbar(aes(ymin = lwr, ymax = upr), width = 0.2, linewidth = 0.7) +
@@ -387,9 +384,6 @@ ggplot(slopes, aes(x = industry, y = est)) +
 ggsave("Barplot_2j.png",  width = 5.54, height = 4.95)
 
 
-
-# PRUEBA DE HIPOTESIS CON WALD
-
 # Crear la L para la prueba de hipotesis
 mat_j <- c(0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,
            0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,
@@ -399,9 +393,9 @@ L_j <- matrix(mat_j,nrow=4,ncol = 16, byrow = T)
 linearHypothesis(m_5j,L_j,white.adjust="hc1")
 
 
-##################################################################################
+# ====/// 2k: Educacion por niveles \\\=====
 
-df4 <- df2 %>%
+dataT1 <- dataT1 %>%
   mutate(
     educ_cat = case_when(
       !is.finite(educ)           ~ NA_character_,
@@ -418,47 +412,98 @@ df4 <- df2 %>%
     )
   )
 
-dums <- as.data.frame(model.matrix(~ educ_cat - 1, data = df4))
+dums <- as.data.frame(
+  model.matrix(~ educ_cat - 1, data = dataT1))
 names(dums) <- sub("^educ_cat", "", names(dums))
 df4 <- bind_cols(df4, dums)
 
-m5_cat <- feols(
-  lwage ~ i(educ_cat, ref = "none") + exper + expersq +
-    female + nonwhite + married + ltenure + region,
-  data = df4, vcov = "hetero"
+m5_cat <- lm(
+  log(wage) ~ i(educ_cat, ref = "none") + exper + exper2 +
+    female + nonwhite + married + asinh(tenure) + factor(region),
+  data = dataT1)
+rse5cat <- sqrt(diag(vcovHC(m5_cat, type = "HC1")))
+
+stargazer(m5, m5_cat, type = "latex",
+          se = list(rse5,rse5cat),
+          title = "Educacion continua vs niveles",
+          label = "tab:reg_2k",
+          dep.var.labels = c("log(salario)"),
+          star.cutoffs = c(0.13, 0.07, 0.03),
+          float.env = "table",
+          align = TRUE,
+          out = "table_ols_2k.tex")
+
+# Primero hacemos dos estimaciones solo con educ o dummies
+# (a) Variable continua
+m_years <- lm(log(wage) ~ educ, data = dataT1)
+
+# (b) Dummies
+m_deg <- lm(log(wage) ~ i(educ_cat, ref = "none"), data = dataT1)
+
+#-----------------------------
+# 2. Prediction grid
+#-----------------------------
+
+# grid of years for plotting the fitted curves
+grid <- data.frame(
+  educ = seq(min(dataT1$educ, na.rm = TRUE),
+                     max(dataT1$educ, na.rm = TRUE),
+                     length.out = 200)
 )
-summary(m5_cat)
 
-msummary(
-  list(
-    "M5: Años de educación" = m5,
-    "M5_cat: Nivel educativo (dummies)" = m5_cat
-  ),
-  estimate = "{estimate}{stars}",
-  stars = c("***" = 0.01, "**" = 0.05, "*" = 0.1),
-  gof_omit = "IC|Log|Within|FE|F",
-  title = "Comparación: años de educación vs. niveles educativos",
-  notes = "Note: *** p<0.01; ** p<0.05; * p<0.1",
-  output = 'latex'
-)
+# Map years of schooling to a degree category (you choose the cutoffs!)
+# Example cutoffs: <= 9 years = secondary, 10–12 = highschool, >= 13 = highed
+grid <- grid %>%
+  mutate(
+    educ_cat = cut(
+      educ,
+      breaks = c(-Inf, 4, 8, 12, 16, Inf),
+      labels = c("none", "elementary","middle", "high_school","higher"),
+      right = FALSE
+    )
+  )
 
-# Extraer coeficientes con confint
-b1 <- broom::tidy(m5, conf.int=TRUE, conf.level=0.90) %>% filter(term=="educ")
-b2 <- broom::tidy(m5_cat, conf.int=TRUE, conf.level=0.90) %>%
-  filter(grepl("educ_cat", term))
+# Predicted log(wage) from each model
+grid$pred_years <- predict(m_years, newdata = grid)
+grid$pred_deg   <- predict(m_deg,   newdata = grid)
 
-comp <- bind_rows(
-  b1 %>% mutate(model="Educ continua", level="educ"),
-  b2 %>% mutate(model="Educ categórica",
-                level=gsub("i\\(educ_cat, ref = \".*?\"\\)","",term))
-)
-
-ggplot(comp, aes(x=level, y=estimate, fill=model)) +
-  geom_col(position="dodge") +
-  geom_errorbar(aes(ymin=conf.low, ymax=conf.high),
-                position=position_dodge(0.9), width=0.2) +
-  labs(title="Comparación de retornos a la educación",
-       x="Nivel educativo", y="Coeficiente estimado (log-salario)") +
-  theme_minimal()
+# Put in long format for ggplot
+plot_dat <- grid %>%
+  select(educ, pred_years, pred_deg) %>%
+  pivot_longer(
+    cols      = starts_with("pred_"),
+    names_to  = "model",
+    values_to = "pred_logwage"
+  )
 
 
+#-----------------------------
+# 3. Plot with ggplot
+#-----------------------------
+
+ggplot() +
+  # raw data
+  geom_point(
+    data = dataT1,
+    aes(x = educ, y = log(wage)),
+    alpha = 0.3
+  ) +
+  # two fitted curves
+  geom_line(
+    data = plot_dat,
+    aes(x = educ, y = pred_logwage, color = model),
+    linewidth = 1.1
+  ) +
+  labs(
+    x = "Years of schooling",
+    y = "log(wage)",
+    color = "Specification",
+    title = "log(wage) vs years of schooling",
+    subtitle = "Linear in years vs. schooling aggregated by degree (dummies)"
+  ) +
+  scale_color_manual(
+    values = c("pred_years" = "blue", "pred_deg" = "green"),
+    labels = c("pred_years" = "Linear model", "pred_deg" = "Degree dummies")
+  ) + theme_minimal()
+
+ggsave("Graph_2k.png",  width = 5.54, height = 4.95)

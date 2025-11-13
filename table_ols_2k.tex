@@ -1,0 +1,71 @@
+
+% Table created by stargazer v.5.2.3 by Marek Hlavac, Social Policy Institute. E-mail: marek.hlavac at gmail.com
+% Date and time: Thu, Nov 13, 2025 - 11:31:21 AM
+% Requires LaTeX packages: dcolumn 
+\begin{table}[!htbp] \centering 
+  \caption{Educacion continua vs niveles} 
+  \label{tab:reg_2k} 
+\begin{tabular}{@{\extracolsep{5pt}}lD{.}{.}{-3} D{.}{.}{-3} } 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{2}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-3} 
+\\[-1.8ex] & \multicolumn{1}{c}{log(salario)} & \multicolumn{1}{c}{log(wage)} \\ 
+\\[-1.8ex] & \multicolumn{1}{c}{(1)} & \multicolumn{1}{c}{(2)}\\ 
+\hline \\[-1.8ex] 
+ educ & 0.075^{***} &  \\ 
+  & (0.008) &  \\ 
+  & & \\ 
+ i(educ\_cat, ref = "none")elementary &  & 0.230^{***} \\ 
+  &  & (0.100) \\ 
+  & & \\ 
+ i(educ\_cat, ref = "none")middle &  & 0.205^{***} \\ 
+  &  & (0.091) \\ 
+  & & \\ 
+ i(educ\_cat, ref = "none")high\_school &  & 0.432^{***} \\ 
+  &  & (0.090) \\ 
+  & & \\ 
+ i(educ\_cat, ref = "none")higher &  & 0.842^{***} \\ 
+  &  & (0.098) \\ 
+  & & \\ 
+ exper & 0.028^{***} & 0.028^{***} \\ 
+  & (0.005) & (0.005) \\ 
+  & & \\ 
+ exper2 & -0.001^{***} & -0.001^{***} \\ 
+  & (0.0001) & (0.0001) \\ 
+  & & \\ 
+ female & -0.303^{***} & -0.295^{***} \\ 
+  & (0.036) & (0.036) \\ 
+  & & \\ 
+ nonwhite & -0.029 & -0.052 \\ 
+  & (0.060) & (0.056) \\ 
+  & & \\ 
+ married & 0.051 & 0.041 \\ 
+  & (0.041) & (0.041) \\ 
+  & & \\ 
+ asinh(tenure) & 0.095^{***} & 0.101^{***} \\ 
+  & (0.017) & (0.016) \\ 
+  & & \\ 
+ factor(region)northcen & -0.068 & -0.068 \\ 
+  & (0.050) & (0.050) \\ 
+  & & \\ 
+ factor(region)south & -0.101^{***} & -0.109^{***} \\ 
+  & (0.047) & (0.047) \\ 
+  & & \\ 
+ factor(region)west & 0.051 & 0.034 \\ 
+  & (0.061) & (0.061) \\ 
+  & & \\ 
+ Constant & 0.479^{***} & 0.982^{***} \\ 
+  & (0.113) & (0.103) \\ 
+  & & \\ 
+\hline \\[-1.8ex] 
+Observations & \multicolumn{1}{c}{526} & \multicolumn{1}{c}{526} \\ 
+R$^{2}$ & \multicolumn{1}{c}{0.454} & \multicolumn{1}{c}{0.465} \\ 
+Adjusted R$^{2}$ & \multicolumn{1}{c}{0.443} & \multicolumn{1}{c}{0.451} \\ 
+Residual Std. Error & \multicolumn{1}{c}{0.397 (df = 515)} & \multicolumn{1}{c}{0.394 (df = 512)} \\ 
+F Statistic & \multicolumn{1}{c}{42.786$^{***}$ (df = 10; 515)} & \multicolumn{1}{c}{34.222$^{***}$ (df = 13; 512)} \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.13; $^{**}$p$<$0.07; $^{***}$p$<$0.03} \\ 
+\end{tabular} 
+\end{table} 
