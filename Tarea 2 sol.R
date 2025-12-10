@@ -1,18 +1,22 @@
+# Tarea 2
+# Script creado por: Carlos Dávila
+# Revisado y editado por: Arturo Aguilar
+
+#Cargar librerias requeridas
 rm(list = ls())
-setwd('C:/Users/carlo/OneDrive - INSTITUTO TECNOLOGICO AUTONOMO DE MEXICO/Escritorio/RA/t2')
 
-instalar_cargar_paquetes <- function(paquetes) {
-  for (p in paquetes) {
-    if (!require(p, character.only = TRUE)) {
-      install.packages(p, dependencies = TRUE)
-    }
-    library(p, character.only = TRUE)
-  }
+install <- function(packages){
+  new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
+  if (length(new.packages))
+    install.packages(new.packages, dependencies = TRUE)
+  sapply(packages, require, character.only = TRUE)
 }
+required.packages <- c('dplyr', 'tidyr', 'ggplot2', 'fixest',
+                       'MASS', 'haven','jtools')
 
-paquetes_requeridos <- c('dplyr', 'tidyr', 'ggplot2', 'fixest', 'MASS', 'haven')
-instalar_cargar_paquetes(paquetes_requeridos)
+install(required.packages)
 
+#Abrir base de datos
 df <- read_dta("inpresdata.dta") %>%
   mutate(
     # --- Preparación y Renombres ---
@@ -57,22 +61,20 @@ data.frame(
   )
 )
 
-# ==============================================================================
-# Opción 1: ggplot2 (Recomendado)
-# ==============================================================================
+# ====/// 1: Grafica y reg inicial \\\=====
 
-ggplot(df, aes(x = yeduc, y = lwage)) +
+ggplot(df, aes(x = yeduc, y = lhwage)) +
   geom_point() +
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm") +
+  theme_classic()
 
-# Opción 2: R base
-plot(df$yeduc, df$lwage)
-abline(lm(lwage ~ yeduc, data = df), col = "red")
+ggsave("Grafica_inicial.png",  width = 5.54, height = 4.95)
 
-# ==============================================================================
-#-- REPLICACIÓN TABLA 3 CON PROMEDIOS SIN PONDERAR --
-# ==============================================================================
+reg1 <- lm(lhwage~yeduc,data=df)
+summ(reg1,robust = "HC1",digits=4)
 
+
+# ====/// 2: Replicación Tabla 3 \\\=====
 
 # 1. Calcular los promedios agrupados (con filtro inicial)
 resumen <- df %>%
