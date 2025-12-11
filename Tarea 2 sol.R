@@ -440,10 +440,10 @@ df_fig1 <- df %>%
 # Sintaxis fixest: i(factor_var, continuous_var, ref = X)
 # - factor_var: age74 (Eje X)
 # - continuous_var: nin (Intensidad)
-# - ref = 12: Establecemos la edad 12 como base (coeficiente 0), igual que el paper.
+# - ref = 12: Establecemos la edad 24 como base (coeficiente 0), igual que el paper.
 # - FEs: birthpl (absorbido) + birthyr (dummies)
 
-est_figura1 <- feols(yeduc ~ i(age74, nin, ref = 12) | birthpl + birthyr,
+est_figura1 <- feols(yeduc ~ i(age74, nin, ref = 24)+i(birthyr, ch71)| birthpl + birthyr,
                      data = df_fig1,
                      weights = ~wt,        # Usamos pesos analíticos como en Stata
                      cluster = ~birthpl)   # Errores agrupados
@@ -464,10 +464,7 @@ library(broom) # Para extraer coeficientes limpiamente
 # Extraemos los coeficientes y los intervalos de confianza
 datos_grafica <- broom::tidy(est_figura1, conf.int = TRUE, conf.level = 0.95) %>%
   # Limpiamos el nombre del término para tener solo el número de la edad
-  mutate(age = as.numeric(gsub("age74::", "", gsub(":nin", "", term)))) %>%
-  # Agregamos manualmente la referencia (Edad 12 = 0) para que salga en el gráfico
-  add_row(term = "Ref", estimate = 0, conf.low = 0, conf.high = 0, age = 12)
-
+  mutate(age = as.numeric(gsub("age74::", "", gsub(":nin", "", term))))
 # Graficamos
 ggplot(datos_grafica, aes(x = age, y = estimate)) +
   # Intervalo de confianza (Líneas punteadas)
@@ -479,13 +476,17 @@ ggplot(datos_grafica, aes(x = age, y = estimate)) +
   # Línea horizontal en 0
   geom_hline(yintercept = 0, linetype = "solid", size = 0.3) +
   # Invertir eje X (De 24 a 2)
-  scale_x_reverse(breaks = seq(2, 24, 2)) +
+  scale_x_reverse(breaks = seq(2, 23, 2)) +
+  scale_y_continuous(limits = c(-0.3,0.5)) +
   # Etiquetas
-  labs(title = "Figure 1: Coefficients of the Interactions Age in 1974 * Program Intensity",
-       subtitle = "in the Education Equation",
+  labs(title = "Figure 2: Coefficients of the Interactions",
+       subtitle = "Y= Education",
        x = "Age in 1974",
        y = "Coefficient estimate") +
   # Tema limpio (Blanco y negro)
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
+
+ggsave("Figure2_Duflo.png",  width = 6.54, height = 4.2)
+
