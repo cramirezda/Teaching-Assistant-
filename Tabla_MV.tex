@@ -1,0 +1,46 @@
+
+% Table created by stargazer v.5.2.3 by Marek Hlavac, Social Policy Institute. E-mail: marek.hlavac at gmail.com
+% Date and time: Tue, Dec 30, 2025 - 1:40:59 PM
+\begin{table}[!htbp] \centering 
+  \caption{} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}}lcccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{4}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-5} 
+\\[-1.8ex] & \textit{ordered} & \textit{multinomial log-linear} & \textit{multinomial log-linear} & \textit{multinomial log-linear} \\ 
+ & \textit{probit} & \textit{(neural networks)} & \textit{(neural networks)} & \textit{(neural networks)} \\ 
+ & (1) Ordered Probit & (2) Family & (3) Teen & (4) Adult \\ 
+\\[-1.8ex] & (1) & (2) & (3) & (4)\\ 
+\hline \\[-1.8ex] 
+ Duration & 0.005$^{***}$ & 0.009$^{*}$ & 0.011$^{***}$ & 0.017$^{***}$ \\ 
+  & (0.001) & (0.006) & (0.003) & (0.003) \\ 
+  & & & & \\ 
+ log(Budget) & $-$0.172$^{***}$ & $-$0.420$^{***}$ & 0.060 & $-$0.466$^{***}$ \\ 
+  & (0.015) & (0.071) & (0.049) & (0.045) \\ 
+  & & & & \\ 
+ FB_likes (z) & 0.063$^{***}$ & $-$0.515$^{**}$ & 0.226$^{***}$ & 0.226$^{***}$ \\ 
+  & (0.020) & (0.253) & (0.072) & (0.072) \\ 
+  & & & & \\ 
+ US dummy & $-$0.304$^{***}$ & 0.379 & 0.217 & $-$0.452$^{***}$ \\ 
+  & (0.065) & (0.365) & (0.187) & (0.170) \\ 
+  & & & & \\ 
+ UK dummy & $-$0.374$^{***}$ & 0.341 & $-$0.379 & $-$0.749$^{***}$ \\ 
+  & (0.093) & (0.458) & (0.260) & (0.234) \\ 
+  & & & & \\ 
+ Constant &  & 4.267$^{***}$ & $-$1.670$^{**}$ & 7.437$^{***}$ \\ 
+  &  & (1.207) & (0.836) & (0.759) \\ 
+  & & & & \\ 
+\hline \\[-1.8ex] 
+Cutpoints (ordered probit) &  &  &  &  \\ 
+Family|Mild & -4.363 (0.259) &  &  &  \\ 
+Mild|Teen & -3.483 (0.258) &  &  &  \\ 
+Teen|Adult & -2.532 (0.256) &  &  &  \\ 
+Observations & 2,953 &  &  &  \\ 
+Akaike Inf. Crit. &  & 6,426.244 & 6,426.244 & 6,426.244 \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{4}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+\end{tabular} 
+\end{table} 
